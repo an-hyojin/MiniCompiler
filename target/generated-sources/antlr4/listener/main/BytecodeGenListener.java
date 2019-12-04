@@ -46,24 +46,20 @@ public class BytecodeGenListener extends MiniJavaBaseListener implements ParseTr
 		String header = funcHeader(ctx, ctx.IDENT().getText());// function의 header만들어 저장
 
 		String stmt = newTexts.get(ctx.compound_stmt());// compound_stmt얻어와서 저장
-		boolean isReturnExist =false;
-		for(MiniJavaParser.StmtContext c :ctx.compound_stmt().stmt()) {
-			if(c.getChild(0) instanceof MiniJavaParser.Return_stmtContext) {
-				isReturnExist = true;
-				break;
-			}
-		}
-		if(!isReturnExist) {
-			newTexts.put(ctx, header + stmt+"return\n" + ".end method\n");// newTexts에 header+stmt+.end method 저장		
-		}else {
+		if (ctx.compound_stmt().stmt(ctx.compound_stmt().stmt().size()-1)
+				.getChild(0) instanceof MiniJavaParser.Return_stmtContext) {
+			// 리턴문 존재
 			newTexts.put(ctx, header + stmt + ".end method\n");// newTexts에 header+stmt+.end method 저장
-			
+
+		} else {
+			newTexts.put(ctx, header + stmt + "return\n" + ".end method\n");// newTexts에 header+stmt+.end method 저장
 		}
 		// <(2) Fill here!>
 	}
 
 	// var_decl : type_spec IDENT ';' | type_spec IDENT '=' LITERAL ';'|type_spec
 	// IDENT '[' LITERAL ']' ';'
+//	| type_spec'[' ']' IDENT '=' NEW type_spec'['LITERAL']'';' ;
 	@Override
 	public void enterVar_decl(MiniJavaParser.Var_declContext ctx) {// var 선언 부
 		String varName = ctx.IDENT().getText();// var name저장
@@ -83,6 +79,7 @@ public class BytecodeGenListener extends MiniJavaBaseListener implements ParseTr
 
 		if (isDeclWithInit(ctx)) {// init이 있으면
 			// load해야함
+			varDecl += newTexts.get(ctx.LITERAL());
 			varDecl += "putfield " + varName + "\n";// putfield하기
 			// v. initialization => Later! skip now..:
 		}
@@ -103,7 +100,11 @@ public class BytecodeGenListener extends MiniJavaBaseListener implements ParseTr
 	@Override
 	public void exitLocal_decl(MiniJavaParser.Local_declContext ctx) {// local decl exit할때
 		String varDecl = "";// 저장공간
-		if (isDeclWithInit(ctx)) {// init이 있으면
+		if (isArrayDecl(ctx)) {
+			varDecl = "iconst_" + ctx.LITERAL() + "\n";
+			varDecl += "newarray\t int\n";
+			varDecl += "astore_" + symbolTable.getVarId(ctx) + "\n";
+		} else if (isDeclWithInit(ctx)) {// init이 있으면
 			String vId = symbolTable.getVarId(ctx);// symtable로 부터 id얻어옴
 			varDecl += "ldc " + ctx.LITERAL().getText() + "\n" + "istore_" + vId + "\n";// val load한뒤 store문 작성
 		}
@@ -154,7 +155,7 @@ public class BytecodeGenListener extends MiniJavaBaseListener implements ParseTr
 				stmt += newTexts.get(ctx.if_stmt());// 얻어옴
 			} else if (ctx.while_stmt() != null) {// while문이면
 				stmt += newTexts.get(ctx.while_stmt());// 얻어옴
-			} else if(ctx.print_stmt() !=null) {
+			} else if (ctx.print_stmt() != null) {
 				stmt += newTexts.get(ctx.print_stmt());
 			} else {// 아니면 return stmt
 				stmt += newTexts.get(ctx.return_stmt());// 얻어옴
@@ -207,11 +208,12 @@ public class BytecodeGenListener extends MiniJavaBaseListener implements ParseTr
 		newTexts.put(ctx, stmt);// put
 		// <(3) Fill here>
 	}
+
 	@Override
 	public void exitPrint_stmt(MiniJavaParser.Print_stmtContext ctx) {
-		 String expr = "getstatic java/lang/System/out Ljava/io/PrintStream; " + "\n" + newTexts.get(ctx.expr())
-		+ "invokevirtual " + symbolTable.getFunSpecStr("_print") + "\n";// print함수 호출
-		 newTexts.put(ctx, expr);
+		String expr = "getstatic java/lang/System/out Ljava/io/PrintStream; " + "\n" + newTexts.get(ctx.expr())
+				+ "invokevirtual " + symbolTable.getFunSpecStr("_print") + "\n";// print함수 호출
+		newTexts.put(ctx, expr);
 	}
 
 	// if_stmt : IF '(' expr ')' stmt | IF '(' expr ')' stmt ELSE stmt;
@@ -272,7 +274,7 @@ public class BytecodeGenListener extends MiniJavaBaseListener implements ParseTr
 					expr += "iload_" + symbolTable.getVarId(idName) + " \n";// iload해줌
 				} else {// type이 배열일때
 					// Type int array => Later! skip now..
-					// expr += " lda " + symbolTable.get(ctx.IDENT().getText()).value + " \n";
+					 expr += " lda " + symbolTable.getVarId(ctx.IDENT().getText()) + " \n"; // -> 이게 왜있는거? 질문
 				}
 			} else if (ctx.LITERAL() != null) {// literal일때
 				String literalStr = ctx.LITERAL().getText();// get Text한후
@@ -293,11 +295,19 @@ public class BytecodeGenListener extends MiniJavaBaseListener implements ParseTr
 				expr = handleFunCall(ctx, expr);// function call수행
 			} else { // expr
 				// Arrays: TODO
+				expr += "aload_" + symbolTable.getVarId(ctx.IDENT().getText()) + "\n";
+				expr += newTexts.get(ctx.expr(0));
+				expr += "iaload\n";
 			}
 		} else {
+			// INTARRAY
 			// IDENT '[' expr ']' '=' expr
+			expr += "aload_" + symbolTable.getVarId(ctx.IDENT().getText()) + "\n";
+			expr += newTexts.get(ctx.expr(0));
+			expr += newTexts.get(ctx.expr(1));
+			expr += "iastore\n";
 
-		} 
+		}
 		newTexts.put(ctx, expr);// 얻어온 값 저장
 	}
 

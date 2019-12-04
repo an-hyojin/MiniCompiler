@@ -8,13 +8,13 @@ program	: classdef '{' decl+ '}';
 classdef : CLASS IDENT;
 decl		: var_decl		
 		| fun_decl		;
-var_decl	:  type_spec IDENT ';' 
-		| type_spec IDENT '=' LITERAL ';'	
-		| type_spec IDENT '[' LITERAL ']' ';'	;
+var_decl	: STATIC type_spec IDENT ';' 
+		| STATIC type_spec IDENT '=' LITERAL ';'	
+		| STATIC type_spec'[' ']' IDENT '=' NEW type_spec'['LITERAL']'';' ;
 type_spec	: VOID				
 		| INT		
 		| STRING		;
-fun_decl	: PUBLICSTATIC type_spec IDENT '(' params ')' compound_stmt ;
+fun_decl	: PUBLIC STATIC type_spec IDENT '(' params ')' compound_stmt ;
 params		: param (',' param)*		
 		| VOID				
 		|				;
@@ -31,8 +31,8 @@ expr_stmt	: expr ';'			;
 while_stmt	: WHILE '(' expr ')' stmt	;
 compound_stmt: '{' local_decl* stmt* '}'	;
 local_decl	: type_spec IDENT ';'
-		| type_spec IDENT '=' LITERAL ';'	
-		| type_spec'[' LITERAL ']'  IDENT ';'	;
+		| type_spec IDENT '=' LITERAL ';'		
+		| type_spec'['']' IDENT '=' NEW type_spec'['LITERAL']'';';
 if_stmt		: IF '(' expr ')' stmt		
 		| IF '(' expr ')' stmt ELSE stmt 		;
 return_stmt	: RETURN ';'			
@@ -66,12 +66,14 @@ args	: expr (',' expr)*
 	|					 ;
 
 VOID: 'void';
+STATIC: 'static';
 INT: 'int';
 STRING: 'String';
-PUBLICSTATIC: 'public static';
+PUBLIC: 'public';
 WHILE: 'while';
 IF: 'if';
 ELSE: 'else';
+NEW :'new';
 RETURN: 'return';
 OR: 'or';
 AND: 'and';

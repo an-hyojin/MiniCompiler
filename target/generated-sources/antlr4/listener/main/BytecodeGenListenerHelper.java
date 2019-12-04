@@ -27,7 +27,7 @@ public class BytecodeGenListenerHelper {
 	static boolean isVarDecl(MiniJavaParser.ProgramContext ctx, int i) {
 		return ctx.getChild(i).getChild(0) instanceof MiniJavaParser.Var_declContext;
 	}
-	// type_spec IDENT '[' ']'
+	// type_spec'[' ']' IDENT 
 	static boolean isArrayParamDecl(ParamContext param) {
 		return param.getChildCount() == 4;
 	}
@@ -39,11 +39,11 @@ public class BytecodeGenListenerHelper {
 
 	// var_decl	: type_spec IDENT '=' LITERAL ';
 	static boolean isDeclWithInit(Var_declContext ctx) {
-		return ctx.getChildCount() == 5 ;
+		return ctx.getChildCount() == 6 ;
 	}
 	// var_decl	: type_spec IDENT '[' LITERAL ']' ';'
 	static boolean isArrayDecl(Var_declContext ctx) {
-		return ctx.getChildCount() == 6;
+		return ctx.getChildCount() == 12;
 	}
 
 	// <local vars>
@@ -53,7 +53,7 @@ public class BytecodeGenListenerHelper {
 	}
 
 	static boolean isArrayDecl(Local_declContext ctx) {
-		return ctx.getChildCount() == 6;
+		return ctx.getChildCount() == 11;
 	}
 	
 	static boolean isDeclWithInit(Local_declContext ctx) {
