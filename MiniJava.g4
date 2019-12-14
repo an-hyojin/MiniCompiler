@@ -10,7 +10,9 @@ decl		: var_decl
 		| fun_decl		;
 var_decl	: STATIC type_spec IDENT ';' 
 		| STATIC type_spec IDENT '=' LITERAL ';'	
-		| STATIC type_spec'[' ']' IDENT '=' NEW type_spec'['LITERAL']'';' ;
+		| STATIC type_spec '['']' IDENT ';'
+		|STATIC type_spec'[' ']' IDENT '=' NEW type_spec'['LITERAL']'';'
+		 ;
 type_spec	: VOID				
 		| INT		
 		| STRING		;
@@ -32,7 +34,9 @@ while_stmt	: WHILE '(' expr ')' stmt	;
 compound_stmt: '{' local_decl* stmt* '}'	;
 local_decl	: type_spec IDENT ';'
 		| type_spec IDENT '=' LITERAL ';'		
-		| type_spec'['']' IDENT '=' NEW type_spec'['LITERAL']'';';
+		| type_spec '['']' IDENT';'
+		| type_spec'['']' IDENT '=' NEW type_spec'['LITERAL']'';'
+		;
 if_stmt		: IF '(' expr ')' stmt		
 		| IF '(' expr ')' stmt ELSE stmt 		;
 return_stmt	: RETURN ';'			
@@ -40,7 +44,7 @@ return_stmt	: RETURN ';'
 expr	:  LITERAL				
 	| '(' expr ')'				 
 	| IDENT				 
-	| IDENT '[' expr ']'			 
+	| IDENT '[' expr ']'
 	| IDENT '(' args ')'	
 	| '-' expr				 
 	| '+' expr				 
@@ -61,7 +65,8 @@ expr	:  LITERAL
 	| expr AND expr				 
 	| expr OR expr				
 	| IDENT '=' expr			
-	| IDENT '[' expr ']' '=' expr		;
+	| IDENT '[' expr ']' '=' expr
+	| IDENT '=' NEW type_spec '['LITERAL']'		 		;
 args	: expr (',' expr)*			 
 	|					 ;
 

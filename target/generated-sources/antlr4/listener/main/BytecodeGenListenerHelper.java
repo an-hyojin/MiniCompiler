@@ -39,7 +39,7 @@ public class BytecodeGenListenerHelper {
 
 	// var_decl	: type_spec IDENT '=' LITERAL ';
 	static boolean isDeclWithInit(Var_declContext ctx) {
-		return ctx.getChildCount() == 6 ;
+		return (ctx.getChildCount() == 6 &&ctx.LITERAL()!=null);
 	}
 	// var_decl	: type_spec IDENT '[' LITERAL ']' ';'
 	static boolean isArrayDecl(Var_declContext ctx) {
@@ -127,7 +127,7 @@ public class BytecodeGenListenerHelper {
 		return ctx.getChildCount() <= 5;
 	}
 	
-	static String getFunProlog(String className) {
+	static String getFunPrologF(String className) {
 		// return ".class public Test .....
 		// ...
 		// invokenonvirtual java/lang/Object/<init>()
@@ -135,13 +135,18 @@ public class BytecodeGenListenerHelper {
 		// .end method"
 		String s = ".class public "+className+"\n";
 		s+=".super java/lang/Object\n";
+		
+		//fun prolog작성 하여 리턴
+		return s;
+	}
+	static String getFunPrologS() {
+		String s="";
 		s+="; standard initializer\n";
 		s+=".method public <init>()V\n";
 		s+="aload_0\n";
 		s+="invokenonvirtual java/lang/Object/<init>()V\n";
 		s+="return\n";
 		s+=".end method\n";
-		//fun prolog작성 하여 리턴
 		return s;
 	}
 	static String getCurrentClassName(MiniJavaParser.ProgramContext ctx) {

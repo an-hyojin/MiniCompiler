@@ -46,8 +46,9 @@ public class BytecodeGenListener extends MiniJavaBaseListener implements ParseTr
 		String header = funcHeader(ctx, ctx.IDENT().getText());// function의 header만들어 저장
 
 		String stmt = newTexts.get(ctx.compound_stmt());// compound_stmt얻어와서 저장
-		if (ctx.compound_stmt().stmt(ctx.compound_stmt().stmt().size()-1)
+		if (ctx.compound_stmt().stmt(ctx.compound_stmt().stmt().size() - 1)
 				.getChild(0) instanceof MiniJavaParser.Return_stmtContext) {
+
 			// 리턴문 존재
 			newTexts.put(ctx, header + stmt + ".end method\n");// newTexts에 header+stmt+.end method 저장
 
@@ -57,13 +58,14 @@ public class BytecodeGenListener extends MiniJavaBaseListener implements ParseTr
 		// <(2) Fill here!>
 	}
 
-	// var_decl : type_spec IDENT ';' | type_spec IDENT '=' LITERAL ';'|type_spec
-	// IDENT '[' LITERAL ']' ';'
-//	| type_spec'[' ']' IDENT '=' NEW type_spec'['LITERAL']'';' ;
+	// var_decl : STATIC type_spec IDENT ';'
+	// | STATIC type_spec IDENT '=' LITERAL ';'
+	// | STATIC type_spec '['']' IDENT ';'
+	// |STATIC type_spec'[' ']' IDENT '=' NEW type_spec'['LITERAL']'';'
 	@Override
 	public void enterVar_decl(MiniJavaParser.Var_declContext ctx) {// var 선언 부
 		String varName = ctx.IDENT().getText();// var name저장
-		if (isArrayDecl(ctx)) {// array 선언이면
+		if (ctx.getChild(3).getText().equals("]")) {// array 선언이면
 			symbolTable.putGlobalVar(varName, Type.INTARRAY);// int array넣어줌
 		} else if (isDeclWithInit(ctx)) {// init이 있으면
 			symbolTable.putGlobalVarWithInitVal(varName, Type.INT, initVal(ctx));// init이 있는 int type넣어줌
@@ -77,33 +79,50 @@ public class BytecodeGenListener extends MiniJavaBaseListener implements ParseTr
 		String varName = ctx.IDENT().getText();// varname저장
 		String varDecl = "";// var decl저장공간 생성
 
-		if (isDeclWithInit(ctx)) {// init이 있으면
-			// load해야함
-			varDecl += newTexts.get(ctx.LITERAL());
-			varDecl += "putfield " + varName + "\n";// putfield하기
-			// v. initialization => Later! skip now..:
+//		if (isDeclWithInit(ctx)) {// init이 있으면
+//			// load해야함
+//			varDecl += newTexts.get(ctx.LITERAL());
+//			varDecl += "putfield " + varName + "\n";// putfield하기
+//			// v. initialization => Later! skip now..:
+//		} else if (isArrayDecl(ctx)) {
+//			if (symbolTable.getVarType(varName) == Type.INTARRAY) {
+//				varDecl += "ldc " + ctx.LITERAL() + "\n";
+//				varDecl += "newarray\t int\n";
+//				varDecl += "putstatic\t" + varName + "\n";
+//
+//			}
+//		}
+		if (symbolTable.getVarType(ctx.IDENT().getText()) == Type.INT) {// static keyword라서 이렇게 선언해야함
+			varDecl += ".field public static " + varName + " I\n";
+		} else if (symbolTable.getVarType(ctx.IDENT().getText()) == Type.INTARRAY) {
+			varDecl += ".field public static " + varName + " [I\n";
 		}
 		newTexts.put(ctx, varDecl);// string 저장
 	}
-
+//	 type_spec IDENT ';'
+//		| type_spec IDENT '=' LITERAL ';'		
+//		| type_spec '['']' IDENT';'
+//		| type_spec'['']' IDENT '=' NEW type_spec'['LITERAL']'';'
 	@Override
 	public void enterLocal_decl(MiniJavaParser.Local_declContext ctx) {// var 나갈 때
-		if (isArrayDecl(ctx)) {// array선언이면
+		if (ctx.getChild(2).getText().equals("]")) {// array선언이면
 			symbolTable.putLocalVar(getLocalVarName(ctx), Type.INTARRAY);// array type으로 넣어줌
 		} else if (isDeclWithInit(ctx)) {// init val이 있으면
 			symbolTable.putLocalVarWithInitVal(getLocalVarName(ctx), Type.INT, initVal(ctx));// init이 있는 int type넣어줌
-		} else { // simple decl
-			symbolTable.putLocalVar(getLocalVarName(ctx), Type.INT);// table에 넣어줌
+		} else {
+			symbolTable.putLocalVar(getLocalVarName(ctx), Type.INT);
 		}
+
 	}
 
 	@Override
 	public void exitLocal_decl(MiniJavaParser.Local_declContext ctx) {// local decl exit할때
 		String varDecl = "";// 저장공간
 		if (isArrayDecl(ctx)) {
-			varDecl = "iconst_" + ctx.LITERAL() + "\n";
+			varDecl = "ldc " + ctx.LITERAL() + "\n";
 			varDecl += "newarray\t int\n";
 			varDecl += "astore_" + symbolTable.getVarId(ctx) + "\n";
+//			varDecl += "astore_" + symbolTable.getVarId(ctx) + "\n";
 		} else if (isDeclWithInit(ctx)) {// init이 있으면
 			String vId = symbolTable.getVarId(ctx);// symtable로 부터 id얻어옴
 			varDecl += "ldc " + ctx.LITERAL().getText() + "\n" + "istore_" + vId + "\n";// val load한뒤 store문 작성
@@ -113,7 +132,7 @@ public class BytecodeGenListener extends MiniJavaBaseListener implements ParseTr
 
 	@Override
 	public void exitProgram(MiniJavaParser.ProgramContext ctx) {// program종료
-		String classProlog = getFunProlog(className);// prolog얻어오기
+		String classProlog = getFunPrologF(className);// prolog얻어오기
 
 		String fun_decl = "", var_decl = "";// 저장공간
 
@@ -124,7 +143,7 @@ public class BytecodeGenListener extends MiniJavaBaseListener implements ParseTr
 				var_decl += newTexts.get(decls.var_decl());// 추가
 			}
 		}
-		newTexts.put(ctx, classProlog + var_decl + fun_decl);// 합쳐서 저장
+		newTexts.put(ctx, classProlog + var_decl + getFunPrologS() + fun_decl);// 합쳐서 저장
 		System.out.println(newTexts.get(ctx));// 출력
 	}
 
@@ -192,7 +211,7 @@ public class BytecodeGenListener extends MiniJavaBaseListener implements ParseTr
 	private String funcHeader(MiniJavaParser.Fun_declContext ctx, String fname) {// function header
 		return ".method public static " + symbolTable.getFunSpecStr(fname) + "\n" + "\t" + ".limit stack "
 				+ getStackSize(ctx) + "\n" + "\t" + ".limit locals " + getLocalVarSize(ctx) + "\n";// header string
-																									// return
+		// return
 	}
 
 	// compound_stmt : '{' local_decl* stmt* '}'
@@ -251,15 +270,15 @@ public class BytecodeGenListener extends MiniJavaBaseListener implements ParseTr
 
 	}
 
-//	|'('expr')'|IDENT'['expr']'|IDENT'('args')'|expr'*'expr|expr'/'expr|expr'%'expr|expr'+'expr|expr'-'expr|
-//
-//	expr EQ expr|
-//	expr NE expr|
-//	expr LE expr|expr'<'expr|
-//	expr GE expr|expr'>'expr|'!'expr|
-//	expr AND expr|
-//	expr OR expr|IDENT'='expr|IDENT'['expr']''='expr;
-//
+	// |'('expr')'|IDENT'['expr']'|IDENT'('args')'|expr'*'expr|expr'/'expr|expr'%'expr|expr'+'expr|expr'-'expr|
+	//
+	// expr EQ expr|
+	// expr NE expr|
+	// expr LE expr|expr'<'expr|
+	// expr GE expr|expr'>'expr|'!'expr|
+	// expr AND expr|
+	// expr OR expr|IDENT'='expr|IDENT'['expr']''='expr;
+	//
 	@Override
 	public void exitExpr(MiniJavaParser.ExprContext ctx) {// expr나갈 때
 		String expr = "";// 저장공간
@@ -270,11 +289,16 @@ public class BytecodeGenListener extends MiniJavaBaseListener implements ParseTr
 		if (ctx.getChildCount() == 1) { // IDENT | LITERAL일때
 			if (ctx.IDENT() != null) {// ident가 있으면
 				String idName = ctx.IDENT().getText();// getText
-				if (symbolTable.getVarType(idName) == Type.INT) {// type이 int라면
+				if(symbolTable.isGlobalVar(idName)&&symbolTable.getVarType(idName)==Type.INT) {
+					expr += "getstatic "+ className +"." + idName +" I\n";
+				}else if(symbolTable.isGlobalVar(idName)&&symbolTable.getVarType(idName)==Type.INTARRAY) {
+					expr += "getstatic "+ className +"." + idName +" [I\n";
+				}
+				else if (symbolTable.getVarType(idName) == Type.INT) {// type이 int라면
 					expr += "iload_" + symbolTable.getVarId(idName) + " \n";// iload해줌
 				} else {// type이 배열일때
 					// Type int array => Later! skip now..
-					 expr += " lda " + symbolTable.getVarId(ctx.IDENT().getText()) + " \n"; // -> 이게 왜있는거? 질문
+					expr += "lda " + symbolTable.getVarId(ctx.IDENT().getText()) + " \n"; // -> 이게 왜있는거? 질문
 				}
 			} else if (ctx.LITERAL() != null) {// literal일때
 				String literalStr = ctx.LITERAL().getText();// get Text한후
@@ -286,7 +310,12 @@ public class BytecodeGenListener extends MiniJavaBaseListener implements ParseTr
 			if (ctx.getChild(0).getText().equals("(")) { // '(' expr ')'
 				expr = newTexts.get(ctx.expr(0));// expr얻어옴
 			} else if (ctx.getChild(1).getText().equals("=")) { // IDENT '=' expr
-				expr = newTexts.get(ctx.expr(0)) + "istore_" + symbolTable.getVarId(ctx.IDENT().getText()) + " \n";// assign
+				if (symbolTable.isGlobalVar(ctx.IDENT().getText())) {
+					expr  = newTexts.get(ctx.expr(0));
+					expr += "putstatic " + className+"." + ctx.IDENT().getText() +" I\n";
+				} else {
+					expr = newTexts.get(ctx.expr(0)) + "istore_" + symbolTable.getVarId(ctx.IDENT().getText()) + " \n";// assign
+				}
 			} else { // binary operation
 				expr = handleBinExpr(ctx, expr);// 저장
 			}
@@ -294,18 +323,50 @@ public class BytecodeGenListener extends MiniJavaBaseListener implements ParseTr
 			if (ctx.args() != null) { // function calls
 				expr = handleFunCall(ctx, expr);// function call수행
 			} else { // expr
+				if (symbolTable.isGlobalVar(ctx.IDENT().getText())) {
+					expr += "getstatic " + className+"."+ ctx.IDENT().getText() + " [I\n";
+					expr += newTexts.get(ctx.expr(0));
+					expr += "iaload\n";
+				} else {
+					expr += "aload_" + symbolTable.getVarId(ctx.IDENT().getText()) + "\n";
+					expr += newTexts.get(ctx.expr(0));
+					expr += "iaload\n";
+
+				}
 				// Arrays: TODO
-				expr += "aload_" + symbolTable.getVarId(ctx.IDENT().getText()) + "\n";
-				expr += newTexts.get(ctx.expr(0));
-				expr += "iaload\n";
+			}
+		} else if (ctx.NEW() != null) {
+			// IDENT '=' NEW type_spec '['LITERAL']'';'
+			if (symbolTable.getVarType(ctx.IDENT().getText()) == Type.INTARRAY) {
+
+				if (symbolTable.isGlobalVar(ctx.IDENT().getText())) {
+					expr += "ldc " + ctx.LITERAL() + "\n";
+					expr += "newarray\t int\n";
+					expr += "putstatic " + className+"."+ ctx.IDENT().getText() + " [I\n";
+					
+				} else {
+					expr += "ldc " + ctx.LITERAL() + "\n";
+					expr += "newarray\t int\n";
+					expr += "astore_" + symbolTable.getVarId(ctx.IDENT().getText()) + "\n";
+				}
 			}
 		} else {
 			// INTARRAY
 			// IDENT '[' expr ']' '=' expr
-			expr += "aload_" + symbolTable.getVarId(ctx.IDENT().getText()) + "\n";
-			expr += newTexts.get(ctx.expr(0));
-			expr += newTexts.get(ctx.expr(1));
-			expr += "iastore\n";
+			if (symbolTable.getVarType(ctx.IDENT().getText()) == Type.INTARRAY) {
+				if (symbolTable.isGlobalVar(ctx.IDENT().getText())) {
+					expr += "getstatic " + className+"."+ ctx.IDENT().getText() + " [I\n";
+					
+					expr += newTexts.get(ctx.expr(0));
+					expr += newTexts.get(ctx.expr(1));
+					expr += "iastore\n";
+				} else {
+					expr += "aload_" + symbolTable.getVarId(ctx.IDENT().getText()) + "\n";
+					expr += newTexts.get(ctx.expr(0));
+					expr += newTexts.get(ctx.expr(1));
+					expr += "iastore\n";
+				}
+			}
 
 		}
 		newTexts.put(ctx, expr);// 얻어온 값 저장
@@ -433,7 +494,7 @@ public class BytecodeGenListener extends MiniJavaBaseListener implements ParseTr
 		String fname = getFunName(ctx);// fname get
 
 		expr = newTexts.get(ctx.args()) + "invokestatic " + className + "/" + symbolTable.getFunSpecStr(fname) + "\n";// 아니면
-																														// function호출
+		// function호출
 
 		return expr;// return
 	}

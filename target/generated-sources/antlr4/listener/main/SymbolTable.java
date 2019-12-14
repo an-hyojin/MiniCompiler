@@ -176,4 +176,12 @@ public class SymbolTable {
 			return String.valueOf(_gsymtable.get(name).id);// 얻어와서 리턴
 		}
 	}
+	
+	public boolean isGlobalVar(String name) {
+		if(_lsymtable.get(name)!=null) {
+			return false;
+		}else {
+			return true;
+		}
+	}
 }

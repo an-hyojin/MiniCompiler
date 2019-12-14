@@ -31,7 +31,7 @@ public class Translator {
 	
 	public static void main(String[] args) throws Exception
 	{
-		CharStream codeCharStream = CharStreams.fromFileName("test.java");
+		CharStream codeCharStream = CharStreams.fromFileName("Test.java");
 		MiniJavaLexer lexer = new MiniJavaLexer(codeCharStream);
 		CommonTokenStream tokens = new CommonTokenStream( lexer );
 		MiniJavaParser parser = new MiniJavaParser( tokens );
