@@ -388,14 +388,20 @@ public class BytecodeGenListener extends MiniJavaBaseListener implements ParseTr
 			break;
 		case "--":// --면 하나 감소
 			expr += "ldc 1" + "\n" + "isub" + "\n";// 1 ldc하고 sub
-			if (ctx.expr(0).IDENT() != null) {// ident가 있으면
+			if(symbolTable.isGlobalVar(ctx.expr(0).IDENT().getText())) {
+				expr += "putstatic " + className+"." + ctx.expr(0).IDENT().getText() +" I\n";//I값 넣어줌		
+			}else if(ctx.expr(0).IDENT() !=null){
 				expr += "istore_" + symbolTable.getVarId(ctx.expr(0).IDENT().getText()) + " \n";// assign
 			}
 			break;
 		case "++":// ++면 하나 증가
 			expr += "ldc 1" + "\n" + "iadd" + "\n";// 1 ldc하고 add
 			if (ctx.expr(0).IDENT() != null) {// ident가 있으면
-				expr += "istore_" + symbolTable.getVarId(ctx.expr(0).IDENT().getText()) + " \n";// assign
+				if(symbolTable.isGlobalVar(ctx.expr(0).IDENT().getText())) {
+					expr += "putstatic " + className+"." + ctx.expr(0).IDENT().getText() +" I\n";//I값 넣어줌		
+				}else if(ctx.expr(0).IDENT() !=null){
+					expr += "istore_" + symbolTable.getVarId(ctx.expr(0).IDENT().getText()) + " \n";// assign
+				}
 			}
 			break;
 		case "!":// !면 true false반전
