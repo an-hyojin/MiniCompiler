@@ -100,10 +100,16 @@ public class BytecodeGenListener extends MiniJavaBaseListener implements ParseTr
 		//
 		//			}
 		//		}
-		if (symbolTable.getVarType(ctx.IDENT().getText()) == Type.INT) {// static keyword라서 이렇게 선언해야 함
-			varDecl += ".field public static " + varName + " I\n";//int field정의
+		if (symbolTable.getVarType(ctx.IDENT().getText()) == Type.INT) {
+			// static keyword라서 이렇게 선언해야 함
+			varDecl += ".field public static " + varName + " I";//int field정의
+			if(ctx.LITERAL()!=null) {
+				varDecl += " = " + ctx.LITERAL();
+			}
+			varDecl +="\n";
 		} else if (symbolTable.getVarType(ctx.IDENT().getText()) == Type.INTARRAY) {//intArray field로 선언
 			varDecl += ".field public static " + varName + " [I\n";//int array field정의
+			//배열 초기화는 어떻게??
 		}
 		newTexts.put(ctx, varDecl);// string 저장
 	}
