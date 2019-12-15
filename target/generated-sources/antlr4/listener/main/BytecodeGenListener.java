@@ -22,6 +22,7 @@ public class BytecodeGenListener extends MiniJavaBaseListener implements ParseTr
 	@Override
 	public void enterProgram(MiniJavaParser.ProgramContext ctx) {
 		className = getCurrentClassName(ctx);//프로그램 시작할때 className저장하고 시작
+		
 		for(MiniJavaParser.DeclContext decl : ctx.decl()) {//java는 main함수 뒤에 함수가 있어도 호출 가능함
 			if(decl.fun_decl()!=null) {//fun_decl이라면
 				MiniJavaParser.Fun_declContext fun_decl = decl.fun_decl();//캐스팅
@@ -40,7 +41,7 @@ public class BytecodeGenListener extends MiniJavaBaseListener implements ParseTr
 		ParamsContext params;// param 저장공간
 
 		if (fname.equals("main")) {// 메인이면
-			symbolTable.putLocalVar("args", Type.STRINGARRAY);// args에 intArray들어옴 -> put
+			symbolTable.putLocalVar("args", Type.STRINGARRAY);// args에  stringArray들어옴 -> put
 		} else {// 메인이 아니라면
 			//fun spec str은 이미 넣어줬음
 			params = ctx.params();// param 넣어줌
@@ -388,15 +389,17 @@ public class BytecodeGenListener extends MiniJavaBaseListener implements ParseTr
 			break;
 		case "--":// --면 하나 감소
 			expr += "ldc 1" + "\n" + "isub" + "\n";// 1 ldc하고 sub
-			if(symbolTable.isGlobalVar(ctx.expr(0).IDENT().getText())) {
-				expr += "putstatic " + className+"." + ctx.expr(0).IDENT().getText() +" I\n";//I값 넣어줌		
-			}else if(ctx.expr(0).IDENT() !=null){
-				expr += "istore_" + symbolTable.getVarId(ctx.expr(0).IDENT().getText()) + " \n";// assign
+			if (ctx.expr(0).IDENT() != null&&ctx.expr(0).getChildCount()==1) {// ident가 있으면
+				if(symbolTable.isGlobalVar(ctx.expr(0).IDENT().getText())) {
+					expr += "putstatic " + className+"." + ctx.expr(0).IDENT().getText() +" I\n";//I값 넣어줌		
+				}else if(ctx.expr(0).IDENT() !=null){
+					expr += "istore_" + symbolTable.getVarId(ctx.expr(0).IDENT().getText()) + " \n";// assign
+				}
 			}
 			break;
 		case "++":// ++면 하나 증가
 			expr += "ldc 1" + "\n" + "iadd" + "\n";// 1 ldc하고 add
-			if (ctx.expr(0).IDENT() != null) {// ident가 있으면
+			if (ctx.expr(0).IDENT() != null&&ctx.expr(0).getChildCount()==1) {// ident가 있으면
 				if(symbolTable.isGlobalVar(ctx.expr(0).IDENT().getText())) {
 					expr += "putstatic " + className+"." + ctx.expr(0).IDENT().getText() +" I\n";//I값 넣어줌		
 				}else if(ctx.expr(0).IDENT() !=null){
