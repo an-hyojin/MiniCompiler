@@ -127,7 +127,7 @@ public class BytecodeGenListenerHelper {
 		return ctx.getChildCount() <= 5;
 	}
 	
-	static String getFunPrologF(String className) {
+	static String getFunPrologF(String className) {//첫번쨰로 부를 prolog
 		// return ".class public Test .....
 		// ...
 		// invokenonvirtual java/lang/Object/<init>()
@@ -139,7 +139,7 @@ public class BytecodeGenListenerHelper {
 		//fun prolog작성 하여 리턴
 		return s;
 	}
-	static String getFunPrologS() {
+	static String getFunPrologS() {//F와 S사이에 field를 저장해야 하기때문에 분리했음
 		String s="";
 		s+="; standard initializer\n";
 		s+=".method public <init>()V\n";
@@ -147,10 +147,11 @@ public class BytecodeGenListenerHelper {
 		s+="invokenonvirtual java/lang/Object/<init>()V\n";
 		s+="return\n";
 		s+=".end method\n";
+		//나머지 prolog작성하여 리턴
 		return s;
 	}
-	static String getCurrentClassName(MiniJavaParser.ProgramContext ctx) {
-		return ctx.classdef().IDENT().getText();
+	static String getCurrentClassName(MiniJavaParser.ProgramContext ctx) {//현재 클래스 name 얻어오기
+		return ctx.classdef().IDENT().getText();//classDef얻어옴
 	}
 	
 	

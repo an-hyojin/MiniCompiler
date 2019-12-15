@@ -12,7 +12,7 @@ import static listener.main.BytecodeGenListenerHelper.*;
 
 public class SymbolTable {
 	enum Type {
-		INT, INTARRAY, VOID, ERROR
+		INT, INTARRAY, VOID, STRINGARRAY, ERROR
 	}
 
 	static public class VarInfo {
@@ -177,11 +177,13 @@ public class SymbolTable {
 		}
 	}
 	
-	public boolean isGlobalVar(String name) {
-		if(_lsymtable.get(name)!=null) {
-			return false;
-		}else {
-			return true;
+	public boolean isGlobalVar(String name) {//global var인지 확인하기 위한 함수
+		if(_lsymtable.get(name)!=null) {//local symboltable에 있으면
+			return false;//global var가 아님 -> false
+		}else if(_gsymtable.get(name)!=null) {//global symboltable에 있으면
+			return true;//global var->true
+		}else {//예외상황
+			return false;//오류
 		}
 	}
 }
